@@ -179,9 +179,9 @@ function Player.createMonsterList(self)
 			-- Add it to monsters list
 			monsters[#monsters + 1] = monster.name
 			counters[monster.difficulty] = counters[monster.difficulty] + 1
-			-- Add it to repeated list
-			repeatedList[#repeatedList + 1] = monster.name
 		end
+		-- Add it to repeated list
+		repeatedList[#repeatedList + 1] = monster.name
 	end
 	return table.concat(monsters, ";")
 end
