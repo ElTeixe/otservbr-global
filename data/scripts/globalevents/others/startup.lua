@@ -124,6 +124,9 @@ function serverstartup.onStartup()
 	-- 0 = ignore exp rate /stage
 	-- 1 = include exp rate / stage
 	Game.setStorageValue(GlobalStorage.XpDisplayMode, 0)
+	
+	-- Prey System Init
+	Prey.init()
 
 	-- Hireling System
 	HirelingsInit()
