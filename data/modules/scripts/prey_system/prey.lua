@@ -175,9 +175,12 @@ function Player.createMonsterList(self)
 	while (#monsters ~= 9) do
 		local monster = Prey.MonsterList[math.random(#Prey.MonsterList)]
 		-- Verify that monster is not repeated and check tier max amount
-		if not table.contains(repeatedList, monster) and counters[monster.difficulty] < getMaxMonster(self, monster.difficulty) then
+		if not table.contains(repeatedList, monster.name) and counters[monster.difficulty] < getMaxMonster(self, monster.difficulty) then
+				-- Add it to monsters list
 				monsters[#monsters + 1] = monster.name
 				counters[monster.difficulty] = counters[monster.difficulty] + 1
+				-- Add it to repeated list
+				repeatedList[#repeatedList + 1] = monster.name
 		end
 	end
 	return table.concat(monsters, ";")
