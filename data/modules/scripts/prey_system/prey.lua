@@ -1,7 +1,7 @@
 dofile('data/modules/scripts/prey_system/assets.lua')
 
 Prey = {
-	Credits = "System remake: Westwol ~ Packet logic: Cjaker ~  Formulas: slavidodo ~  Revision: Rick, Sameshima, RodrigoSilva93",
+	Credits = "System remake: Westwol ~ Packet logic: Cjaker ~  Formulas: slavidodo ~  Revision: Rick, Sameshima, RodrigoSilva93, ElTeixe",
 	Version = "6.4",
 	LastUpdate = "12/02/2021",
 }
@@ -84,10 +84,9 @@ function Prey.getPreyList()
 	
 	for i = 1, #bestiaryList do
 		local monster = MonsterType(bestiaryList[i])
-		if monster then
-			if monster:experience() > 0 then
-				preyList[#preyList + 1] = {name = monster:name(), difficulty = monster:BestiaryStars()}
-			end
+		-- Check monster exists and it gives exp
+		if monster and monster:experience() > 0 then
+			preyList[#preyList + 1] = {name = monster:name(), difficulty = monster:BestiaryStars()}
 		end
 	end
 	
@@ -175,13 +174,10 @@ function Player.createMonsterList(self)
 	}
 	while (#monsters ~= 9) do
 		local monster = Prey.MonsterList[math.random(#Prey.MonsterList)]
-		-- Verify that monster is not repeated
-		if not table.contains(repeatedList, monster) then
-				-- Check tier max amount
-				if counters[monster.difficulty] < getMaxMonster(self, monster.difficulty) then
-					monsters[#monsters + 1] = monster.name
-					counters[monster.difficulty] = counters[monster.difficulty] + 1
-				end
+		-- Verify that monster is not repeated and check tier max amount
+		if not table.contains(repeatedList, monster) and counters[monster.difficulty] < getMaxMonster(self, monster.difficulty) then
+				monsters[#monsters + 1] = monster.name
+				counters[monster.difficulty] = counters[monster.difficulty] + 1
 		end
 	end
 	return table.concat(monsters, ";")
