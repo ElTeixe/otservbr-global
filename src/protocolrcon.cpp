@@ -34,119 +34,136 @@ extern LuaScriptInterface g_luaScript;
 std::map<uint32_t, int64_t> ProtocolRCON::ipConnectMap;
 const uint64_t ProtocolRCON::start = OTSYS_TIME();
 
-enum RequestedInfo_t : uint16_t {
-	REQUEST_BASIC_SERVER_INFO = 1 << 0,
-	REQUEST_OWNER_SERVER_INFO = 1 << 1,
-	REQUEST_MISC_SERVER_INFO = 1 << 2,
-	REQUEST_PLAYERS_INFO = 1 << 3,
-	REQUEST_MAP_INFO = 1 << 4,
-	REQUEST_EXT_PLAYERS_INFO = 1 << 5,
-	REQUEST_PLAYER_STATUS_INFO = 1 << 6,
-	REQUEST_SERVER_SOFTWARE_INFO = 1 << 7,
-};
-
 void ProtocolRCON::onRecvFirstMessage(NetworkMessage& msg)
 {
-	std::cout << "[ProtocolRCON::onRecvFirstMessage] msg:" << msg.getLength() << std::endl;
-	uint32_t ip = getIP();
-	if (ip != 0x0100007F) {
-		std::string ipStr = convertIPToString(ip);
-		if (ipStr != g_config.getString(ConfigManager::IP)) {
-			std::map<uint32_t, int64_t>::const_iterator it = ipConnectMap.find(ip);
-			if (it != ipConnectMap.end() && (OTSYS_TIME() < (it->second + g_config.getNumber(ConfigManager::STATUSQUERY_TIMEOUT)))) {
-				disconnect();
-				return;
-			}
-		}
-	}
+  uint8_t recvbyte = msg.getByte();
 
-	ipConnectMap[ip] = OTSYS_TIME();
+  std::cout << "[ProtocolRCON::onRecvFirstMessage] msg:" << msg.getLength() << " recvbyte:" << (int)recvbyte << std::endl;
 
-	auto output = OutputMessagePool::getOutputMessage();
-
-	switch (msg.getByte()) {
-		//XML info protocol
-	case 0xFF: {
-		if (msg.getString(4) == "info") {
-			g_dispatcher.addTask(createTask(std::bind(&ProtocolRCON::sendStatusString, std::static_pointer_cast<ProtocolRCON>(shared_from_this()))));
-			return;
-		}
-		break;
-	}
-	case 0xFE: {
-		std::string password = msg.getString(msg.getLength() - msg.getBufferPosition());
-		std::cout << "[ProtocolRCON::onRecvFirstMessage] password:" << password << "/" << g_config.getString(ConfigManager::RCON_PASSWORD).c_str() << std::endl;
-		if (password == g_config.getString(ConfigManager::RCON_PASSWORD).c_str()) {
-			std::cout << "[ProtocolRCON::onRecvFirstMessage] password OK!" << std::endl;
-			g_dispatcher.addTask(createTask(std::bind(&ProtocolRCON::sendInfo, std::static_pointer_cast<ProtocolRCON>(shared_from_this()), 0x01, "")));
-			return;
-		}
-		else {
-			g_dispatcher.addTask(createTask(std::bind(&ProtocolRCON::sendStatusString, std::static_pointer_cast<ProtocolRCON>(shared_from_this()))));
-		}
-		break;
-	}
-	case 0x01: {
-		g_game.saveGameState();
-		return;
-	}
-	// START RAID
-	case 0x02: {
-		const std::string& raidName = "RatsThais";
-
-		Raid* raid = g_game.raids.getRaidByName(raidName);
-
-		std::cout << "[ProtocolRCON::RAID] raid:" << raidName << std::endl;
-
-		if (!raid || !raid->isLoaded()) {
-			std::cout << "[ProtocolRCON::RAID] NO EXISTS!" << std::endl;
-		}
-
-		if (g_game.raids.getRunning()) {
-			std::cout << "[ProtocolRCON::RAID] RUNNING!" << std::endl;
-		}
-
-		g_game.raids.setRunning(raid);
-		raid->startRaid();
-		return;
-	}
-	// BROADCAST
-	case 0x03: {
-		Player *p = new Player(nullptr);
-		IOLoginData::preloadPlayer(p, "Knight");
-		IOLoginData::loadPlayerById(p, p->getGUID());
-		const auto& players = g_game.getPlayers();
-		for (const auto& it : players) {
-			it.second->sendPrivateMessage(p, TALKTYPE_BROADCAST, "TEST MESAGGE!");
-		}
+  switch (recvbyte) {
+  case 0x001: {
+    std::string password = msg.getString(msg.getLength() - msg.getBufferPosition());
+    std::cout << "[ProtocolRCON::onRecvFirstMessage] password:" << password << "/" << g_config.getString(ConfigManager::RCON_PASSWORD).c_str() << std::endl;
+    if (password == g_config.getString(ConfigManager::RCON_PASSWORD).c_str()) {
+      std::cout << "[ProtocolRCON::onRecvFirstMessage] password OK!" << std::endl;
+      g_dispatcher.addTask(createTask(std::bind(&ProtocolRCON::sendStatusString, std::static_pointer_cast<ProtocolRCON>(shared_from_this()))));
+      return;
+    }
+    else {
+      disconnect();
+    }
+  }
+  case 0x02: {
+    g_game.saveGameState();
     return;
-	}
-	// PLAYER LIST
-	case 0x04: {
-		const auto& players = g_game.getPlayers();
-		output->add<uint32_t>(players.size());
-		for (const auto& it : players) {
-			output->addString(it.second->getName());
-			output->add<uint32_t>(it.second->getLevel());
-		}
-		send(output);
+  }
+           // START RAID
+  case 0x03: {
+    const std::string& raidName = "RatsThais";
+
+    Raid* raid = g_game.raids.getRaidByName(raidName);
+
+    std::cout << "[ProtocolRCON::RAID] raid:" << raidName << std::endl;
+
+    if (!raid || !raid->isLoaded()) {
+      std::cout << "[ProtocolRCON::RAID] NO EXISTS!" << std::endl;
+    }
+
+    if (g_game.raids.getRunning()) {
+      std::cout << "[ProtocolRCON::RAID] RUNNING!" << std::endl;
+    }
+
+    g_game.raids.setRunning(raid);
+    raid->startRaid();
     return;
-	}
+  }
+           // BROADCAST
+  case 0x04: {
+    Player* p = new Player(nullptr);
+    IOLoginData::preloadPlayer(p, "Knight");
+    IOLoginData::loadPlayerById(p, p->getGUID());
+    const auto& players = g_game.getPlayers();
+    for (const auto& it : players) {
+      it.second->sendPrivateMessage(p, TALKTYPE_BROADCAST, "TEST MESAGGE!");
+    }
+    return;
+  }
+           // PLAYER LIST
+  case 0x05: {
+    auto output = OutputMessagePool::getOutputMessage();
+    const auto& players = g_game.getPlayers();
+    output->add<uint32_t>(players.size());
+    for (const auto& it : players) {
+      output->addString(it.second->getName());
+      output->add<uint32_t>(it.second->getLevel());
+    }
+    send(output);
+    return;
+  }
 
-	default:
-		break;
-	}
-	disconnect();
-}
-
-void ProtocolRCON::onConnect()
-{
-	std::cout << "[ProtocolRCON::onConnect]" << std::endl;
+  default:
+    break;
+  }
 }
 
 void ProtocolRCON::parsePacket(NetworkMessage& msg)
 {
-	std::cout << "[ProtocolRCON::parsePacket] msg:" << msg.getLength() << std::endl;
+  uint8_t recvbyte = msg.getByte();
+
+	std::cout << "[ProtocolRCON::parsePacket] msg:" << msg.getLength() << " recvbyte:" << (int)recvbyte << std::endl;
+
+  switch (recvbyte) {
+  case 0x02: {
+    g_game.saveGameState();
+    return;
+  }
+           // START RAID
+  case 0x03: {
+    const std::string& raidName = "RatsThais";
+
+    Raid* raid = g_game.raids.getRaidByName(raidName);
+
+    std::cout << "[ProtocolRCON::RAID] raid:" << raidName << std::endl;
+
+    if (!raid || !raid->isLoaded()) {
+      std::cout << "[ProtocolRCON::RAID] NO EXISTS!" << std::endl;
+    }
+
+    if (g_game.raids.getRunning()) {
+      std::cout << "[ProtocolRCON::RAID] RUNNING!" << std::endl;
+    }
+
+    g_game.raids.setRunning(raid);
+    raid->startRaid();
+    return;
+  }
+           // BROADCAST
+  case 0x04: {
+    Player* p = new Player(nullptr);
+    IOLoginData::preloadPlayer(p, "Knight");
+    IOLoginData::loadPlayerById(p, p->getGUID());
+    const auto& players = g_game.getPlayers();
+    for (const auto& it : players) {
+      it.second->sendPrivateMessage(p, TALKTYPE_BROADCAST, "TEST MESAGGE!");
+    }
+    return;
+  }
+           // PLAYER LIST
+  case 0x05: {
+    auto output = OutputMessagePool::getOutputMessage();
+    const auto& players = g_game.getPlayers();
+    output->add<uint32_t>(players.size());
+    for (const auto& it : players) {
+      output->addString(it.second->getName());
+      output->add<uint32_t>(it.second->getLevel());
+    }
+    send(output);
+    return;
+  }
+
+  default:
+    break;
+  }
 }
 
 void ProtocolRCON::sendStatusString()
@@ -232,78 +249,5 @@ void ProtocolRCON::sendStatusString()
 	std::string data = ss.str();
 	output->addBytes(data.c_str(), data.size());
 	send(output);
-	disconnect();
-}
-
-void ProtocolRCON::sendInfo(uint16_t requestedInfo, const std::string& characterName)
-{
-	auto output = OutputMessagePool::getOutputMessage();
-
-	if (requestedInfo & REQUEST_BASIC_SERVER_INFO) {
-		output->addByte(0x10);
-		output->addString(g_config.getString(ConfigManager::SERVER_NAME));
-		output->addString(g_config.getString(ConfigManager::IP));
-		output->addString(std::to_string(g_config.getNumber(ConfigManager::LOGIN_PORT)));
-	}
-
-	if (requestedInfo & REQUEST_OWNER_SERVER_INFO) {
-		output->addByte(0x11);
-		output->addString(g_config.getString(ConfigManager::OWNER_NAME));
-		output->addString(g_config.getString(ConfigManager::OWNER_EMAIL));
-	}
-
-	if (requestedInfo & REQUEST_MISC_SERVER_INFO) {
-		output->addByte(0x12);
-		output->addString(g_config.getString(ConfigManager::MOTD));
-		output->addString(g_config.getString(ConfigManager::LOCATION));
-		output->addString(g_config.getString(ConfigManager::URL));
-		output->add<uint64_t>((OTSYS_TIME() - ProtocolRCON::start) / 1000);
-	}
-
-	if (requestedInfo & REQUEST_PLAYERS_INFO) {
-		output->addByte(0x20);
-		output->add<uint32_t>(g_game.getPlayersOnline());
-		output->add<uint32_t>(g_config.getNumber(ConfigManager::MAX_PLAYERS));
-		output->add<uint32_t>(g_game.getPlayersRecord());
-	}
-
-	if (requestedInfo & REQUEST_MAP_INFO) {
-		output->addByte(0x30);
-		output->addString(g_config.getString(ConfigManager::MAP_NAME));
-		output->addString(g_config.getString(ConfigManager::MAP_AUTHOR));
-		uint32_t mapWidth, mapHeight;
-		g_game.getMapDimensions(mapWidth, mapHeight);
-		output->add<uint16_t>(mapWidth);
-		output->add<uint16_t>(mapHeight);
-	}
-
-	if (requestedInfo & REQUEST_EXT_PLAYERS_INFO) {
-		output->addByte(0x21); // players info - online players list
-
-		const auto& players = g_game.getPlayers();
-		output->add<uint32_t>(players.size());
-		for (const auto& it : players) {
-			output->addString(it.second->getName());
-			output->add<uint32_t>(it.second->getLevel());
-		}
-	}
-
-	if (requestedInfo & REQUEST_PLAYER_STATUS_INFO) {
-		output->addByte(0x22); // players info - online status info of a player
-		if (g_game.getPlayerByName(characterName) != nullptr) {
-			output->addByte(0x01);
-		}
-		else {
-			output->addByte(0x00);
-		}
-	}
-
-	if (requestedInfo & REQUEST_SERVER_SOFTWARE_INFO) {
-		output->addByte(0x23); // server software info
-		output->addString(STATUS_SERVER_NAME);
-		output->addString(STATUS_SERVER_VERSION);
-		output->addString(g_config.getString(ConfigManager::CLIENT_VERSION_STR));
-	}
-	send(output);
-	disconnect();
+	//disconnect();
 }

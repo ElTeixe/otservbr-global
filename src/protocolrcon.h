@@ -38,10 +38,8 @@ public:
 
 	void parsePacket(NetworkMessage& msg) override;
 	void onRecvFirstMessage(NetworkMessage& msg) override;
-	void onConnect() override;
 
 	void sendStatusString();
-	void sendInfo(uint16_t requestedInfo, const std::string& characterName);
 
 	static const uint64_t start;
 
