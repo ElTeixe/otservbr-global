@@ -34,6 +34,7 @@
 #include "scriptmanager.h"
 #include "server.h"
 #include "webhook.h"
+#include "protocolrcon.h"
 
 #if __has_include("gitmetadata.h")
 	#include "gitmetadata.h"
@@ -315,6 +316,12 @@ void mainLoader(int, char*[], ServiceManager* services) {
 	// OT protocols
 	services->add<ProtocolStatus>(static_cast<uint16_t>(g_config.getNumber(
 												ConfigManager::STATUS_PORT)));
+
+	// RCON protocol
+	if (g_config.getBoolean(ConfigManager::RCON_ENABLED)) {
+		std::cout << ">> RCON enabled at port: " << g_config.getNumber(ConfigManager::RCON_PORT) << std::endl;
+		services->add<ProtocolRCON>(static_cast<uint16_t>(g_config.getNumber(ConfigManager::RCON_PORT)));
+	}
 
 	RentPeriod_t rentPeriod;
 	std::string strRentPeriod = asLowerCaseString(g_config.getString(

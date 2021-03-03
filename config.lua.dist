@@ -42,6 +42,11 @@ maxPacketsPerSecond = 25
 maxItem = 2000
 maxContainer = 100
 
+-- RCON Server
+rconEnabled = false
+rconPort = 1234
+rconPassword = "mypassword"
+
 --- Version
 clientVersion = 1261
 clientVersionStr = "12.61"

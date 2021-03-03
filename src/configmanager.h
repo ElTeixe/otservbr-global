@@ -61,6 +61,7 @@ class ConfigManager
 			ONLY_PREMIUM_ACCOUNT,
 			MAP_CUSTOM_ENABLED,
 			ALL_CONSOLE_LOG,
+			RCON_ENABLED,
 
 			LAST_BOOLEAN_CONFIG /* this must be the last one */
 		};
@@ -90,6 +91,7 @@ class ConfigManager
 			MAP_CUSTOM_SPAWN,
 			MAP_CUSTOM_AUTHOR,
       DISCORD_WEBHOOK_URL,
+			RCON_PASSWORD,
 
 			LAST_STRING_CONFIG /* this must be the last one */
 		};
@@ -141,6 +143,7 @@ class ConfigManager
 			PUSH_DELAY,
 			PUSH_DISTANCE_DELAY,
 			STASH_ITEMS,
+			RCON_PORT,
 
 			LAST_INTEGER_CONFIG /* this must be the last one */
 		};

@@ -238,6 +238,10 @@ bool ConfigManager::load()
 	floating[RATE_MONSTER_HEALTH] = getGlobalFloat(L, "rateMonsterHealth", 1.0);
 	floating[RATE_MONSTER_ATTACK] = getGlobalFloat(L, "rateMonsterAttack", 1.0);
 	floating[RATE_MONSTER_DEFENSE] = getGlobalFloat(L, "rateMonsterDefense", 1.0);
+	
+	boolean[RCON_ENABLED] = getGlobalBoolean(L, "rconEnabled", false);
+	integer[RCON_PORT] = getGlobalNumber(L, "rconPort", 1234);
+	string[RCON_PASSWORD] = getGlobalString(L, "rconPassword", "mypassword");
 
 	loaded = true;
 	lua_close(L);
