@@ -29,7 +29,7 @@ public:
 	// static protocol information
 	enum { server_sends_first = false };
 	enum { protocol_identifier = 0xFA };
-	enum { use_checksum = true };
+	enum { use_checksum = false };
 	static const char* protocol_name() {
 		return "rcon protocol";
 	}
@@ -39,7 +39,7 @@ public:
 	void parsePacket(NetworkMessage& msg) override;
 	void onRecvFirstMessage(NetworkMessage& msg) override;
 
-	void sendStatusString();
+	void sendAuthResult(bool success);
 
 	static const uint64_t start;
 
